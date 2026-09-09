@@ -9,15 +9,10 @@ DB_PATH = os.getenv("OSINT_DB_PATH", "osint_searches.db")
 from ui.legal_banner import render_legal_banner
 from ui.watchlist_monitor import render_watchlist_monitor
 from ui.search import render_search_interface
-from ui.watchlist_monitor import render_watchlist_monitor
 from ui.cases import render_case_management
-from ui.watchlist_monitor import render_watchlist_monitor
 from ui.dashboard import render_dashboard
-from ui.watchlist_monitor import render_watchlist_monitor
 from ui.graph_view import render_entity_graph
-from ui.watchlist_monitor import render_watchlist_monitor
 from ui.watchlists import render_watchlists
-from ui.watchlist_monitor import render_watchlist_monitor
 from storage.export_manager import ExportManager
 
 st.set_page_config(page_title="Dorker Pro v6.0", page_icon="🕵️‍♂️", layout="wide")
@@ -40,6 +35,7 @@ def main():
             "📁 Gestion des Cas",
             "🕸️ Graphe d'Entités",
             "📡 Watchlists & Alertes",
+            "🔬 Analyse Manuelle (Watchlists)",
             "⚙️ Configuration"
         ])
         
@@ -59,6 +55,8 @@ def main():
         render_entity_graph(case_id)
     elif app_mode == "📡 Watchlists & Alertes":
         render_watchlists()
+    elif app_mode == "🔬 Analyse Manuelle (Watchlists)":
+        render_watchlist_monitor()
     elif app_mode == "⚙️ Configuration":
         st.header("⚙️ Configuration")
         st.write("### Fichiers de configuration")
@@ -66,6 +64,18 @@ def main():
         st.code(f"Registry: collectors_registry.json", language="bash")
         st.code(f"Env: .env", language="bash")
         
+        st.write("### 🐞 Mode Debug API")
+        st.caption(
+            "Journalise chaque requête/réponse vers les APIs externes (Censys, Shodan, ...) : "
+            "statut HTTP, paramètres/en-têtes (secrets masqués) et extrait du corps de réponse "
+            "en cas d'erreur. Utile pour diagnostiquer un 401/403/429."
+        )
+        from utils.api_debug import is_debug_enabled, set_debug_enabled
+        debug_enabled = st.checkbox("Activer le mode debug API", value=is_debug_enabled())
+        set_debug_enabled(debug_enabled)
+        if debug_enabled:
+            st.info("Logs visibles dans le terminal (stderr) et dans `logs/api_debug.log`.")
+
         st.write("### Vérification OPSEC")
         if st.button("🔍 Vérifier mon anonymat"):
             from utils.opsec import check_ip_leak

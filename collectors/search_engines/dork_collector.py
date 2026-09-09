@@ -1,23 +1,40 @@
 """
 collectors/search_engines/dork_collector.py
-Collecteur automatique de Dorks, vérificateur de fuites de secrets, 
+Collecteur automatique de Dorks, vérificateur de fuites de secrets,
 parser S3 Bucket XML et mapper MITRE ATT&CK.
+
+NE HÉRITE PAS de BaseCollector : son interface (fetch(domain) -> liste de
+findings enrichis MITRE) est volontairement différente de celle d'un
+collecteur de recherche classique (collect(query, session) ->
+List[SearchResult]), car il retourne des données bien plus riches (secrets
+détectés, contenu de buckets S3, mapping MITRE ATT&CK) qui ne rentreraient
+pas dans un simple SearchResult. Auparavant, la classe héritait quand même
+de BaseCollector sans respecter son contrat (pas de collect(), __init__
+incompatible), ce qui la rendait impossible à instancier — d'où son statut
+de collecteur "orphelin" (absent de collectors_registry.json et inutilisable
+si on essayait de l'appeler).
+
+Utilisation (voir ui/watchlist_monitor.py, scan de dorks/secrets à la
+demande) :
+
+    collector_mgr = CollectorManager()
+    dc = DorkSecretCollector(case_id="MON_CAS")
+    async with aiohttp.ClientSession() as session:
+        findings = await dc.fetch("exemple.com", collector_manager=collector_mgr, session=session)
+
+Si collector_manager/session ne sont pas fournis, fetch() se rabat sur une
+recherche vide (aucune URL candidate) plutôt que de planter.
 """
 
 import asyncio
 import re
 import xml.etree.ElementTree as ET
 import httpx
-from typing import List, Dict, Any
-from collectors.base import BaseCollector
+from typing import List, Dict, Any, Optional
 from core.dork_templates import generate_dorks
 from core.mitre_mapper import MitreMapper
+from core.ioc_extractor import IOCExtractor
 from utils.logger import get_investigation_logger
-
-try:
-    from core.ioc_extractor import extract_iocs
-except ImportError:
-    def extract_iocs(text): return {}
 
 SECRET_REGEXES = {
     "AWS Access Key": r"AKIA[0-9A-Z]{16}",
@@ -33,15 +50,34 @@ SENSITIVE_FILE_PATTERNS = re.compile(
     r"config\.json|credentials|shadow|passwd|backup|dump)", re.IGNORECASE
 )
 
-class DorkSecretCollector(BaseCollector):
-    def __init__(self, search_engine_collector=None, case_id: str = "GENERAL"):
-        super().__init__()
+
+def extract_iocs(text: str) -> Dict[str, List[str]]:
+    """
+    Regroupe les IOC détectés dans `text` par type, ex. {"EMAIL": [...], "IPV4": [...]}.
+    Remplace l'ancien fallback (import qui échouait silencieusement et
+    retournait toujours {}) par un branchement réel sur core.ioc_extractor.
+    """
+    try:
+        iocs, _stats = IOCExtractor.extract_from_text(text)
+    except Exception:
+        return {}
+
+    grouped: Dict[str, List[str]] = {}
+    for ioc in iocs:
+        grouped.setdefault(ioc.type, []).append(ioc.value)
+    return grouped
+
+
+class DorkSecretCollector:
+    def __init__(self, case_id: str = "GENERAL", search_engine_ids: Optional[List[str]] = None):
         self.log = get_investigation_logger(case_id)
-        self.search_engine = search_engine_collector
         self.mitre_mapper = MitreMapper(case_id=case_id)
+        # IDs de collectors_registry.json utilisés pour découvrir des URLs
+        # candidates à partir des dorks générés.
+        self.search_engine_ids = search_engine_ids or ["duckduckgo", "brave"]
         self.user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
 
-    async def fetch(self, domain: str) -> List[Dict[str, Any]]:
+    async def fetch(self, domain: str, collector_manager=None, session=None) -> List[Dict[str, Any]]:
         self.log.info(f"[DorkCollector] Démarrage de la recherche de secrets pour : {domain}")
         dorks = generate_dorks(domain)
         discovered_urls: List[Dict[str, str]] = []
@@ -49,14 +85,10 @@ class DorkSecretCollector(BaseCollector):
         for dork_info in dorks:
             query = dork_info["query"]
             self.log.debug(f"[DorkCollector] Exécution du dork ({dork_info['category']}): {query}")
-            
+
             try:
-                if self.search_engine:
-                    results = await self.search_engine.search(query)
-                else:
-                    results = await self._fallback_search(query)
-                
-                for url in results:
+                urls = await self._discover_urls(query, collector_manager, session)
+                for url in urls:
                     discovered_urls.append({
                         "url": url,
                         "category": dork_info["category"],
@@ -67,26 +99,46 @@ class DorkSecretCollector(BaseCollector):
 
         self.log.info(f"[DorkCollector] {len(discovered_urls)} URLs candidates trouvées. Début du scan de vérification.")
         verified_results = await self._verify_and_scan_urls(discovered_urls)
-        
+
         self.log.info("[DorkCollector] Enrichissement des découvertes avec le référentiel MITRE ATT&CK.")
         return self.mitre_mapper.map_findings(verified_results)
+
+    async def _discover_urls(self, query: str, collector_manager, session) -> List[str]:
+        """
+        Découvre les URLs candidates pour un dork donné en réutilisant les
+        collecteurs de recherche déjà enregistrés dans CollectorManager
+        (au lieu de dépendre d'un `search_engine_collector.search()` qui
+        n'était implémenté nulle part ailleurs dans le projet).
+        """
+        if collector_manager is None or session is None:
+            return await self._fallback_search(query)
+
+        urls: List[str] = []
+        for engine_id in self.search_engine_ids:
+            try:
+                results = await collector_manager.run_single_collector(engine_id, query, session)
+                urls.extend([r.url for r in results if getattr(r, "url", None)])
+            except Exception as e:
+                self.log.debug(f"[DorkCollector] Moteur '{engine_id}' indisponible pour ce dork : {e}")
+
+        return urls
 
     async def _verify_and_scan_urls(self, url_entries: List[Dict[str, str]]) -> List[Dict[str, Any]]:
         results = []
         async with httpx.AsyncClient(timeout=8.0, follow_redirects=True, headers={"User-Agent": self.user_agent}) as client:
             tasks = [self._analyze_single_url(client, entry) for entry in url_entries]
             analyses = await asyncio.gather(*tasks, return_exceptions=True)
-            
+
             for res in analyses:
                 if isinstance(res, dict) and res.get("exposed"):
                     results.append(res)
-                    
+
         return results
 
     async def _analyze_single_url(self, client: httpx.AsyncClient, entry: Dict[str, str]) -> Dict[str, Any]:
         url = entry["url"]
         self.log.debug(f"[DorkCollector] Analyse HTTP de l'URL : {url}")
-        
+
         result_payload = {
             "url": url,
             "category": entry["category"],
@@ -130,7 +182,7 @@ class DorkSecretCollector(BaseCollector):
 
         except httpx.RequestError as exc:
             self.log.debug(f"[DorkCollector] Échec d'accès à {url} : {str(exc)}")
-        
+
         return result_payload
 
     def _parse_s3_bucket_xml(self, xml_content: str, base_url: str) -> Dict[str, Any]:
@@ -145,7 +197,7 @@ class DorkSecretCollector(BaseCollector):
                 total_objects += 1
                 key_node = contents_node.find("Key")
                 size_node = contents_node.find("Size")
-                
+
                 if key_node is not None and key_node.text:
                     file_key = key_node.text
                     file_size = int(size_node.text) if (size_node is not None and size_node.text) else 0
@@ -169,5 +221,6 @@ class DorkSecretCollector(BaseCollector):
         }
 
     async def _fallback_search(self, query: str) -> List[str]:
+        """Utilisé uniquement si aucun CollectorManager/session n'est fourni."""
         await asyncio.sleep(0.1)
         return []

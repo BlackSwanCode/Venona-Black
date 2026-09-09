@@ -59,18 +59,32 @@ class DatabaseManager:
             await db.commit()
         return ioc_id
 
-    async def save_leak(self, case_id: str, leak: Leak) -> str:
+    async def save_leak(
+        self,
+        case_id: Optional[str],
+        leak: Leak,
+        leak_category: Optional[str] = None,
+        raw_context: Optional[str] = None,
+        is_secret_leak: bool = False,
+    ) -> str:
         import uuid
         leak_id = str(uuid.uuid4())
-        
+
         # Récupérer l'IOC ID
         ioc_id = hashlib.sha256(leak.ioc_value.encode()).hexdigest()
-        
+
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute("""
-                INSERT INTO leaks (id, ioc_id, case_id, signature_type, snippet, source_url, severity)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (leak_id, ioc_id, case_id, leak.signature_type, leak.snippet, leak.source_url, leak.severity))
+                INSERT INTO leaks (
+                    id, ioc_id, case_id, signature_type, snippet, source_url,
+                    severity, leak_category, raw_context, is_secret_leak
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                leak_id, ioc_id, case_id, leak.signature_type, leak.snippet,
+                leak.source_url, leak.severity, leak_category, raw_context,
+                1 if is_secret_leak else 0,
+            ))
             await db.commit()
         return leak_id
 
@@ -135,14 +149,14 @@ class DatabaseManager:
             rows = await cursor.fetchall()
             return [dict(row) for row in rows]
 
-    async def create_alert(self, watchlist_id: str, alert_type: str, severity: str, details: str) -> str:
+    async def create_alert(self, watchlist_id: str, leak_id: Optional[str] = None, status: str = "NEW") -> str:
         import uuid
         alert_id = str(uuid.uuid4())
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute("""
-                INSERT INTO alerts (id, watchlist_id, status, triggered_at)
-                VALUES (?, ?, 'NEW', CURRENT_TIMESTAMP)
-            """, (alert_id, watchlist_id))
+                INSERT INTO alerts (id, watchlist_id, leak_id, status, triggered_at)
+                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            """, (alert_id, watchlist_id, leak_id, status))
             await db.commit()
         return alert_id
 

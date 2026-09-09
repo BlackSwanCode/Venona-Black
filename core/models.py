@@ -18,6 +18,7 @@ class IOC(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0, default=0.8)
     first_seen: datetime = Field(default_factory=datetime.utcnow)
     enrichment: Optional[Dict[str, Any]] = None
+    source_url: Optional[str] = None  # URL/source d'où l'IOC a été extrait
 
 class Leak(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))

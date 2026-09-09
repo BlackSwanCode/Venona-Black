@@ -4,6 +4,12 @@ Shodan Collector — Recherche d'hosts exposés sur Internet.
 Shodan est le moteur de recherche pour les appareils connectés.
 API: https://api.shodan.io/
 Clé API requise (SHODAN_API_KEY dans .env)
+
+⚠️ L'endpoint /shodan/host/search est réservé aux comptes payants — un
+compte Free renverra un 403 même avec une clé valide et un code correct.
+Vérifiez le plan de votre clé sur https://account.shodan.io/billing.
+Activez DEBUG_API_CALLS=1 (voir utils/api_debug.py) pour voir la réponse
+brute renvoyée par Shodan en cas d'erreur.
 """
 
 import aiohttp
@@ -11,6 +17,7 @@ import os
 from typing import List
 from collectors.base import BaseCollector
 from core.models import SearchResult
+from utils.api_debug import log_api_call
 import logging
 
 logger = logging.getLogger("dorker.shodan")
@@ -41,16 +48,40 @@ class ShodanCollector(BaseCollector):
 
         try:
             async with session.get(url, params=params, timeout=15) as response:
-                if response.status == 401:
+                status = response.status
+                body_text = None
+
+                if status != 200:
+                    try:
+                        body_text = await response.text()
+                    except Exception:
+                        body_text = None
+
+                log_api_call(
+                    "Shodan", "GET", url,
+                    params=params, status=status, response_body=body_text,
+                )
+
+                if status == 401:
                     logger.error("Clé API Shodan invalide")
                     return []
 
-                if response.status == 429:
+                if status == 403:
+                    logger.error(
+                        "Shodan a renvoyé 403 (Forbidden) — l'endpoint de recherche complète "
+                        "(/shodan/host/search) nécessite un compte payant ; un compte Free "
+                        "n'y a pas accès même avec une clé valide. Vérifiez votre plan sur "
+                        "account.shodan.io/billing. Activez DEBUG_API_CALLS=1 pour le détail "
+                        "du message renvoyé par Shodan."
+                    )
+                    return []
+
+                if status == 429:
                     logger.warning("Quota Shodan dépassé")
                     return []
 
-                if response.status != 200:
-                    logger.warning(f"Shodan returned {response.status}")
+                if status != 200:
+                    logger.warning(f"Shodan returned {status}")
                     return []
 
                 data = await response.json()
@@ -63,7 +94,6 @@ class ShodanCollector(BaseCollector):
                     country = match.get("location", {}).get("country_name", "N/A")
                     city = match.get("location", {}).get("city", "N/A")
 
-                    # Extraire les banners/services
                     banners = []
                     if match.get("http"):
                         banners.append(f"HTTP: {match['http'].get('server', 'N/A')}")
@@ -85,5 +115,6 @@ class ShodanCollector(BaseCollector):
                 return results
 
         except Exception as e:
+            log_api_call("Shodan", "GET", url, params=params, error=str(e))
             logger.error(f"Erreur Shodan: {e}")
             return []

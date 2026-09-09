@@ -90,3 +90,19 @@ class CollectorManager:
     async def _safe_collect(self, collector: BaseCollector, query: str, session: Any) -> List[SearchResult]:
         await collector._respect_rate_limit()
         return await collector.collect(query, session)
+
+    async def run_single_collector(self, collector_id: str, query: str, session: Any) -> List[SearchResult]:
+        """
+        Exécute un seul collecteur par son id (utilisé pour les scans ciblés,
+        ex. ui/watchlist_monitor.py, pour économiser les quotas API en
+        n'interrogeant qu'un sous-ensemble de collecteurs).
+
+        Retourne une liste vide (plutôt que de lever une exception) si le
+        collecteur est inconnu ou désactivé (clé API manquante), pour ne
+        pas interrompre un scan portant sur plusieurs cibles/collecteurs.
+        """
+        collector = self.collectors.get(collector_id)
+        if collector is None:
+            logger.warning(f"run_single_collector: collecteur '{collector_id}' introuvable ou désactivé.")
+            return []
+        return await self._safe_collect(collector, query, session)

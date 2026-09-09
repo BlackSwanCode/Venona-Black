@@ -36,7 +36,7 @@
         "requests_per_minute": 30
       },
       "requires_api_key": true,
-      "env_var": "CENSYS_API_ID"
+      "env_var": "CENSYS_PAT"
     },
     {
       "id": "crtsh",

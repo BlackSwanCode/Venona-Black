@@ -66,10 +66,12 @@ class EnrichmentOrchestrator:
             return {"source": "error", "error": str(e)}
 
     async def _check_mx(self, email: str) -> bool:
-        import dns.resolver
+        # dns.resolver.resolve() est synchrone ; il faut dns.asyncresolver
+        # pour pouvoir faire `await` dessus (sinon TypeError).
+        import dns.asyncresolver
         domain = email.split("@")[-1]
         try:
-            await dns.resolver.resolve(domain, 'MX')
+            await dns.asyncresolver.resolve(domain, 'MX')
             return True
         except Exception:
             return False
