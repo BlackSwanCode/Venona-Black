@@ -9,6 +9,7 @@ Son architecture centrale repose sur un **système de collecteurs modulaires** :
 ## Sommaire
 
 - [Aperçu de l'architecture](#aperçu-de-larchitecture)
+- [Modules principaux](#modules-principaux)
 - [Installation](#installation)
 - [Démarrage rapide](#démarrage-rapide)
 - [🧩 Créer un nouveau collecteur](#-créer-un-nouveau-collecteur)
@@ -24,26 +25,85 @@ Son architecture centrale repose sur un **système de collecteurs modulaires** :
 ## Aperçu de l'architecture
 
 ```
-Requête utilisateur
+Requête utilisateur (ui/search.py)
         │
         ▼
- DorkTranslator ──► adapte la syntaxe (dorks) par moteur, via QuerySanitizer
+ QuerySanitizer ──► nettoie/valide la requête brute
         │
         ▼
- CollectorManager ──► lit collectors_registry.json, instancie les collecteurs actifs
+ DorkTranslator ──► adapte la syntaxe (dorks/opérateurs) par moteur cible
+        │
+        ▼
+ CollectorManager ──► lit collectors_registry.json, instancie les collecteurs actifs,
+        │              vérifie la clé API requise (env_var), applique le rate limiting
         │
         ├──► Collecteur A ─┐
         ├──► Collecteur B ─┼──► exécution asynchrone parallèle (asyncio.gather)
         └──► Collecteur N ─┘
         │
         ▼
- List[SearchResult] ──► IOCExtractor, scoring, MITRE mapping, enrichissement
+ List[SearchResult]
+        │
+        ├──► IOCExtractor (core/ioc_extractor.py) ──► IOC typés (IP, domaine, hash, secrets…)
+        │                                                  │
+        │                                                  ▼
+        │                                     EnrichmentOrchestrator (enrichment/orchestrator.py)
+        │                                     ── cache SQLite 7j, puis AbuseIPDB / VirusTotal / WHOIS-DNS
+        │
+        ├──► Scoring (core/scoring.py) ──► score de sévérité pondéré par type d'IOC
+        ├──► MitreMapper (core/mitre_mapper.py) ──► mapping vers techniques ATT&CK
+        └──► DomainWhitelist (core/domain_whitelist.py) ──► filtre les faux-positifs (vendors, CDN…)
         │
         ▼
- Stockage (SQLite) ──► UI (recherche, dashboard, cas, graphe, watchlists, alertes)
+ DatabaseManager (storage/db_manager.py, SQLite) ──► cases, searches, iocs, leaks, watchlists, alerts
+        │
+        ├──► ExportManager (storage/export_manager.py) ──► export STIX / rapports
+        │
+        ▼
+ UI Streamlit (app.py) : Recherche, Centre de Commandement, Cas, Graphe d'Entités,
+                          Watchlists & Alertes, Analyse Manuelle, Configuration
+        │
+        ▼ (en tâche de fond / déclenché manuellement)
+ WatchlistMonitor (ui/watchlist_monitor.py) ──► rejoue les collecteurs sur les termes
+                                                 surveillés ──► AlertDispatcher (alerting/dispatcher.py)
+                                                 ──► Slack / Telegram / Webhook
 ```
 
-Le `CollectorManager` (`collectors/manager.py`) est le chef d'orchestre : il lit `collectors_registry.json`, importe dynamiquement chaque module de collecteur, vérifie la présence des clés API requises, puis lance tous les collecteurs sélectionnés en parallèle via `asyncio.gather`. Ce découplage total entre le registre, le manager et l'implémentation de chaque collecteur est ce qui rend l'ajout d'une nouvelle source aussi simple que d'ajouter un fichier et une entrée JSON — **sans jamais toucher au cœur de l'application**.
+Le `CollectorManager` (`collectors/manager.py`) est le chef d'orchestre de la collecte : il lit `collectors_registry.json`, importe dynamiquement chaque module de collecteur, vérifie la présence des clés API requises, puis lance tous les collecteurs sélectionnés en parallèle via `asyncio.gather`. Ce découplage total entre le registre, le manager et l'implémentation de chaque collecteur est ce qui rend l'ajout d'une nouvelle source aussi simple que d'ajouter un fichier et une entrée JSON — **sans jamais toucher au cœur de l'application**.
+
+En aval de la collecte, le pipeline est tout aussi découplé : l'extraction d'IOC, l'enrichissement, le scoring et le mapping MITRE s'appliquent uniformément à n'importe quel `SearchResult`, quelle que soit sa source. L'`EnrichmentOrchestrator` met en cache chaque enrichissement en base pendant 7 jours (table `iocs`) pour limiter la consommation de quotas API tiers. Le `WatchlistMonitor` referme la boucle en réexécutant périodiquement (ou manuellement) les collecteurs sur des termes surveillés et en déclenchant des alertes (Slack/Telegram/webhook) via l'`AlertDispatcher` en cas de nouveauté.
+
+## Modules principaux
+
+Au-delà des collecteurs (voir plus bas), le projet est organisé en couches indépendantes :
+
+| Module | Rôle |
+|---|---|
+| `core/models.py` | Modèles Pydantic partagés : `SearchResult`, `IOC`, `Leak`, `Case`, `WatchlistItem`, `Alert`, `EnrichmentResult`. |
+| `core/query_sanitizer.py` | Nettoie/valide la requête utilisateur avant collecte. |
+| `core/dork_translator.py` | Adapte une requête (dorks/opérateurs) à la syntaxe propre à chaque moteur (`ENGINE_CAPABILITIES`). |
+| `core/dork_templates.py` | Bibliothèque de templates de dorks réutilisables. |
+| `core/ioc_extractor.py` | Détecte les IOC (IP, domaines, hashs, emails, secrets type clés AWS/GitHub/clés privées…) dans les `snippet` des résultats. |
+| `core/domain_whitelist.py` | Liste de domaines légitimes (vendors sécurité, CDN…) exclus de l'extraction d'IOC pour limiter les faux-positifs. |
+| `core/scoring.py` | Calcule un score de sévérité pondéré par type d'IOC, confiance et fiabilité de la source. |
+| `core/mitre_mapper.py` | Fait correspondre les IOC/techniques observées à la matrice MITRE ATT&CK. |
+| `enrichment/orchestrator.py` | Orchestre l'enrichissement d'un IOC (AbuseIPDB, VirusTotal, WHOIS/DNS) avec un cache SQLite de 7 jours pour économiser les quotas. |
+| `enrichment/abuseipdb.py`, `virustotal.py`, `whois_dns.py` | Un client par source d'enrichissement, appelé par l'orchestrateur. |
+| `storage/db_manager.py` | Accès SQLite asynchrone (`aiosqlite`) : cas, recherches, IOC, fuites, watchlists, alertes. |
+| `storage/export_manager.py` | Export des données (STIX, rapports). |
+| `alerting/dispatcher.py` | Route une alerte vers les canaux configurés (Slack webhook, Telegram) en parallèle. |
+| `alerting/telegram.py`, `webhook.py` | Implémentations spécifiques par canal. |
+| `ui/search.py` | Interface de recherche : sélection des collecteurs, lancement de la collecte, affichage des résultats. |
+| `ui/dashboard.py` | « Centre de Commandement » : statistiques globales, vue d'ensemble des cas et IOC. |
+| `ui/cases.py` | Gestion des cas d'investigation (création, IOC associés). |
+| `ui/graph_view.py` | Construit un graphe d'entités à partir de la base pour visualiser les corrélations. |
+| `ui/watchlists.py` | Gestion des termes surveillés (ajout/liste). |
+| `ui/watchlist_monitor.py` | Rejoue les collecteurs sur les watchlists et déclenche les alertes correspondantes. |
+| `ui/legal_banner.py` | Bannière de rappel légal affichée à chaque lancement. |
+| `ui/themes.py` | Gestion des thèmes CSS de l'interface *(en cours d'implémentation)*. |
+| `utils/opsec.py` | Vérifie l'IP perçue et l'absence de fuite DNS avant une session de collecte sensible. |
+| `utils/api_debug.py` | Mode debug optionnel : journalise chaque requête/réponse vers les APIs externes (secrets masqués). |
+| `utils/rate_limiter.py` / `utils/logger.py` | Utilitaires partagés de limitation de débit et de logging. |
 
 ## Installation
 
@@ -59,7 +119,15 @@ streamlit run app.py
 
 ## Démarrage rapide
 
-Au lancement, `app.py` vérifie la présence de la base SQLite (`osint_searches.db`), affiche la bannière légale, puis expose la navigation entre les modules : Recherche OSINT, Centre de Commandement, Gestion des Cas, Graphe d'Entités, Watchlists & Alertes, et Configuration.
+Au lancement, `app.py` vérifie la présence de la base SQLite (`osint_searches.db`, configurable via `OSINT_DB_PATH`), affiche la bannière légale, puis expose la navigation (menu latéral) entre les modules :
+
+- **🔍 Recherche OSINT** — lance une collecte multi-sources sur une requête/cible.
+- **📊 Centre de Commandement** — tableau de bord et statistiques globales.
+- **📁 Gestion des Cas** — création et suivi des dossiers d'investigation.
+- **🕸️ Graphe d'Entités** — visualisation des corrélations entre IOC pour le cas actif.
+- **📡 Watchlists & Alertes** — gestion des termes/cibles surveillés.
+- **🔬 Analyse Manuelle (Watchlists)** — exécution ponctuelle des collecteurs sur une watchlist.
+- **⚙️ Configuration** — chemins de config (DB, registre, `.env`), activation du mode debug API (`utils/api_debug.py`) et vérification OPSEC (IP perçue / fuite DNS, `utils/opsec.py`).
 
 ---
 
@@ -240,26 +308,59 @@ pytest tests/test_collectors.py -v
 
 ```
 .
-├── app.py                     # Point d'entrée Streamlit
-├── init_db.py                 # Initialisation de la base SQLite
-├── collectors_registry.json   # Registre déclaratif des collecteurs
+├── app.py                       # Point d'entrée Streamlit (navigation + routage des modules)
+├── init_db.py                   # Initialisation du schéma SQLite (cases, searches, iocs, leaks, watchlists, alerts)
+├── collectors_registry.json     # Registre déclaratif des collecteurs (source de vérité du CollectorManager)
+├── requirements.txt
 ├── collectors/
-│   ├── base.py                # Classe abstraite BaseCollector
-│   ├── manager.py              # Chargement dynamique + orchestration asynchrone
-│   ├── content_scraper.py
-│   ├── search_engines/
-│   ├── surface_attack/
-│   ├── code_source/
-│   ├── breach_intel/
-│   ├── threat_intel/
-│   └── passive_feed/
-├── core/                      # Modèles, extraction d'IOC, scoring, dorks, MITRE
-├── enrichment/                # AbuseIPDB, VirusTotal, WHOIS/DNS
-├── storage/                   # Persistance SQLite + export (STIX, etc.)
-├── alerting/                  # Dispatch d'alertes (Telegram, webhook)
-├── ui/                        # Interface Streamlit (recherche, cas, graphe, watchlists)
-├── utils/                     # Logger, rate limiter, OPSEC
+│   ├── base.py                  # Classe abstraite BaseCollector (config, rate limiting)
+│   ├── manager.py                # Chargement dynamique du registre + orchestration asynchrone
+│   ├── content_scraper.py        # Récupération/scraping du contenu des pages trouvées
+│   ├── search_engines/           # Brave, Mojeek, DuckDuckGo, Qwant, SearXNG, dork_collector
+│   ├── surface_attack/           # Shodan, Censys, crt.sh, SecurityTrails
+│   ├── code_source/               # GitHub, GitHub Advanced, GitLab
+│   ├── breach_intel/              # HIBP, LeakIX, DeHashed
+│   ├── threat_intel/              # GreyNoise, URLScan, ThreatFox, AlienVault OTX, URLhaus, MalwareBazaar, Pulsedive
+│   └── passive_feed/               # Flux RSS/Atom
+├── core/
+│   ├── models.py                 # Modèles Pydantic partagés (SearchResult, IOC, Case, Leak, Alert…)
+│   ├── query_sanitizer.py        # Validation/nettoyage de la requête utilisateur
+│   ├── dork_translator.py        # Adaptation de la requête par moteur (ENGINE_CAPABILITIES)
+│   ├── dork_templates.py         # Bibliothèque de templates de dorks
+│   ├── ioc_extractor.py          # Détection d'IOC et de secrets dans les résultats
+│   ├── domain_whitelist.py       # Domaines légitimes exclus de l'extraction d'IOC
+│   ├── scoring.py                # Calcul du score de sévérité
+│   └── mitre_mapper.py           # Correspondance avec la matrice MITRE ATT&CK
+├── enrichment/
+│   ├── orchestrator.py           # Orchestration + cache SQLite 7j des enrichissements
+│   ├── abuseipdb.py
+│   ├── virustotal.py
+│   └── whois_dns.py
+├── storage/
+│   ├── db_manager.py             # Accès SQLite asynchrone (aiosqlite)
+│   └── export_manager.py         # Export des données (STIX, rapports)
+├── alerting/
+│   ├── dispatcher.py             # Routage d'une alerte vers les canaux configurés
+│   ├── telegram.py
+│   └── webhook.py
+├── ui/
+│   ├── search.py                 # Interface de recherche / lancement de collecte
+│   ├── dashboard.py               # Centre de Commandement (statistiques)
+│   ├── cases.py                    # Gestion des cas d'investigation
+│   ├── graph_view.py               # Graphe d'entités
+│   ├── watchlists.py                # Gestion des watchlists
+│   ├── watchlist_monitor.py         # Exécution des collecteurs sur les watchlists + alertes
+│   ├── legal_banner.py              # Bannière de rappel légal
+│   └── themes.py                     # Thèmes CSS (en cours)
+├── utils/
+│   ├── logger.py
+│   ├── rate_limiter.py
+│   ├── opsec.py                   # Vérification IP perçue / fuite DNS
+│   └── api_debug.py                # Mode debug des appels API externes
 └── tests/
+    ├── test_collectors.py
+    ├── test_ioc_extractor.py
+    └── test_scoring.py
 ```
 
 ## Avertissement légal
