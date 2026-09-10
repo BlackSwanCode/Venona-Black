@@ -74,10 +74,10 @@ Les collecteurs sont rangés par catégorie sous `collectors/` :
 | Dossier | Catégorie | Exemples actuels |
 |---|---|---|
 | `collectors/search_engines/` | Moteurs de recherche | Brave, Mojeek, DuckDuckGo, Qwant, SearXNG |
-| `collectors/surface_attack/` | Surface d'attaque / recon infra | Shodan, Censys, crt.sh |
+| `collectors/surface_attack/` | Surface d'attaque / recon infra | Shodan, Censys, crt.sh, SecurityTrails |
 | `collectors/code_source/` | Dépôts de code | GitHub, GitHub Advanced |
 | `collectors/breach_intel/` | Fuites de données / identifiants | HIBP, LeakIX, DeHashed |
-| `collectors/threat_intel/` | Threat intelligence | GreyNoise, URLScan, ThreatFox, AlienVault OTX, URLhaus, MalwareBazaar |
+| `collectors/threat_intel/` | Threat intelligence | GreyNoise, URLScan, ThreatFox, AlienVault OTX, URLhaus, MalwareBazaar, Pulsedive |
 | `collectors/passive_feed/` | Flux passifs | RSS/Atom |
 
 Si aucune catégorie n'est adaptée, créez un nouveau sous-dossier avec un `__init__.py` vide.
@@ -210,10 +210,10 @@ Aucune modification de `app.py`, de `collectors/manager.py` ou de la base de don
 | Catégorie | Collecteurs |
 |---|---|
 | Moteurs de recherche | Brave, Mojeek, DuckDuckGo, Qwant, SearXNG |
-| Surface d'attaque | Shodan, Censys, crt.sh |
+| Surface d'attaque | Shodan, Censys, crt.sh, SecurityTrails |
 | Sources de code | GitHub, GitHub Advanced |
 | Fuites de données | HIBP, LeakIX, DeHashed |
-| Threat intelligence | GreyNoise, URLScan, ThreatFox, AlienVault OTX, URLhaus, MalwareBazaar |
+| Threat intelligence | GreyNoise, URLScan, ThreatFox, AlienVault OTX, URLhaus, MalwareBazaar, Pulsedive |
 | Flux passifs | RSS/Atom (BleepingComputer, The Hacker News, Dark Reading, ThreatPost, SecurityWeek, Krebs on Security, The Record) |
 
 ## Bonnes pratiques de collecte

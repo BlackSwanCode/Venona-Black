@@ -51,6 +51,19 @@
       "requires_api_key": false
     },
     {
+      "id": "securitytrails",
+      "name": "SecurityTrails",
+      "category": "surface_attack",
+      "module": "collectors.surface_attack.securitytrails",
+      "class": "SecurityTrailsCollector",
+      "enabled": true,
+      "rate_limit": {
+        "requests_per_minute": 30
+      },
+      "requires_api_key": true,
+      "env_var": "SECURITYTRAILS_API_KEY"
+    },
+    {
       "id": "brave",
       "name": "Bravesearch",
       "category": "search_engine",
@@ -252,6 +265,19 @@
         "requests_per_minute": 30
       },
       "requires_api_key": false
+    },
+    {
+      "id": "pulsedive",
+      "name": "Pulsedive",
+      "category": "threat_intel",
+      "module": "collectors.threat_intel.pulsedive",
+      "class": "PulsediveCollector",
+      "enabled": true,
+      "rate_limit": {
+        "requests_per_minute": 30
+      },
+      "requires_api_key": true,
+      "env_var": "PULSEDIVE_API_KEY"
     }
   ]
 }
