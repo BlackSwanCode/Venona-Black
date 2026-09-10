@@ -8,7 +8,7 @@
       "class": "RSSCollector",
       "enabled": true,
       "rate_limit": {
-        "requests_per_minute": 30
+        "requests_per_minute": 9999
       },
       "requires_api_key": false
     },
@@ -20,7 +20,7 @@
       "class": "ShodanCollector",
       "enabled": true,
       "rate_limit": {
-        "requests_per_minute": 30
+        "requests_per_minute": 9999
       },
       "requires_api_key": true,
       "env_var": "SHODAN_API_KEY"
@@ -33,7 +33,7 @@
       "class": "CensysCollector",
       "enabled": true,
       "rate_limit": {
-        "requests_per_minute": 30
+        "requests_per_minute": 9999
       },
       "requires_api_key": true,
       "env_var": "CENSYS_PAT"
@@ -46,7 +46,7 @@
       "class": "CrtShCollector",
       "enabled": true,
       "rate_limit": {
-        "requests_per_minute": 30
+        "requests_per_minute": 9999
       },
       "requires_api_key": false
     },
@@ -58,7 +58,7 @@
       "class": "SecurityTrailsCollector",
       "enabled": true,
       "rate_limit": {
-        "requests_per_minute": 30
+        "requests_per_minute": 9999
       },
       "requires_api_key": true,
       "env_var": "SECURITYTRAILS_API_KEY"
@@ -71,7 +71,7 @@
       "class": "BraveSearchCollector",
       "enabled": true,
       "rate_limit": {
-        "requests_per_minute": 30
+        "requests_per_minute": 9999
       },
       "requires_api_key": true,
       "env_var": "BRAVE_API_KEY"
@@ -84,7 +84,7 @@
       "class": "MojeekCollector",
       "enabled": true,
       "rate_limit": {
-        "requests_per_minute": 30
+        "requests_per_minute": 9999
       },
       "requires_api_key": true,
       "env_var": "MOJEEK_API_KEY"
@@ -97,7 +97,7 @@
       "class": "DuckDuckGoCollector",
       "enabled": true,
       "rate_limit": {
-        "requests_per_minute": 30
+        "requests_per_minute": 9999
       },
       "requires_api_key": false
     },
@@ -109,7 +109,7 @@
       "class": "QwantCollector",
       "enabled": true,
       "rate_limit": {
-        "requests_per_minute": 30
+        "requests_per_minute": 9999
       },
       "requires_api_key": false
     },
@@ -121,7 +121,7 @@
       "class": "SearXNGCollector",
       "enabled": true,
       "rate_limit": {
-        "requests_per_minute": 30
+        "requests_per_minute": 9999
       },
       "requires_api_key": false
     },
@@ -133,7 +133,7 @@
       "class": "GitHubCollector",
       "enabled": true,
       "rate_limit": {
-        "requests_per_minute": 30
+        "requests_per_minute": 9999
       },
       "requires_api_key": true,
       "env_var": "GITHUB_TOKEN"
@@ -146,7 +146,7 @@
       "class": "GitHubAdvancedCollector",
       "enabled": true,
       "rate_limit": {
-        "requests_per_minute": 30
+        "requests_per_minute": 9999
       },
       "requires_api_key": true,
       "env_var": "GITHUB_TOKEN"
@@ -159,7 +159,7 @@
       "class": "HIBPCollector",
       "enabled": true,
       "rate_limit": {
-        "requests_per_minute": 30
+        "requests_per_minute": 9999
       },
       "requires_api_key": true,
       "env_var": "HIBP_API_KEY"
@@ -172,7 +172,7 @@
       "class": "LeakIXCollector",
       "enabled": true,
       "rate_limit": {
-        "requests_per_minute": 30
+        "requests_per_minute": 9999
       },
       "requires_api_key": true,
       "env_var": "LEAKIX_API_KEY"
@@ -185,7 +185,7 @@
       "class": "DeHashedCollector",
       "enabled": true,
       "rate_limit": {
-        "requests_per_minute": 30
+        "requests_per_minute": 9999
       },
       "requires_api_key": true,
       "env_var": "DEHASHED_API_KEY"
@@ -198,7 +198,7 @@
       "class": "GreyNoiseCollector",
       "enabled": true,
       "rate_limit": {
-        "requests_per_minute": 30
+        "requests_per_minute": 9999
       },
       "requires_api_key": true,
       "env_var": "GRY_API_KEY"
@@ -211,7 +211,7 @@
       "class": "URLScanCollector",
       "enabled": true,
       "rate_limit": {
-        "requests_per_minute": 30
+        "requests_per_minute": 9999
       },
       "requires_api_key": true,
       "env_var": "URLSCAN_API_KEY"
@@ -224,7 +224,7 @@
       "class": "ThreatFoxCollector",
       "enabled": true,
       "rate_limit": {
-        "requests_per_minute": 30
+        "requests_per_minute": 9999
       },
       "requires_api_key": true,
       "env_var": "THREATFOX_API_KEY"
@@ -237,7 +237,7 @@
       "class": "AlienVaultOTXCollector",
       "enabled": true,
       "rate_limit": {
-        "requests_per_minute": 30
+        "requests_per_minute": 9999
       },
       "requires_api_key": false
     },
@@ -249,7 +249,7 @@
       "class": "URLhausCollector",
       "enabled": true,
       "rate_limit": {
-        "requests_per_minute": 30
+        "requests_per_minute": 9999
       },
       "requires_api_key": true,
       "env_var": "URLHAUS_API_KEY"
@@ -262,7 +262,7 @@
       "class": "MalwareBazaarCollector",
       "enabled": true,
       "rate_limit": {
-        "requests_per_minute": 30
+        "requests_per_minute": 9999
       },
       "requires_api_key": false
     },
@@ -274,7 +274,7 @@
       "class": "PulsediveCollector",
       "enabled": true,
       "rate_limit": {
-        "requests_per_minute": 30
+        "requests_per_minute": 9999
       },
       "requires_api_key": true,
       "env_var": "PULSEDIVE_API_KEY"
