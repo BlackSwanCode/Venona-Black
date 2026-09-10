@@ -27,6 +27,8 @@ recherche vide (aucune URL candidate) plutôt que de planter.
 """
 
 import asyncio
+import os
+import random
 import re
 import xml.etree.ElementTree as ET
 import httpx
@@ -82,7 +84,13 @@ class DorkSecretCollector:
         dorks = generate_dorks(domain)
         discovered_urls: List[Dict[str, str]] = []
 
-        for dork_info in dorks:
+        # Pause aléatoire entre deux dorks pour limiter le risque de
+        # déclencher le "soft rate limit" (statut 202) de DuckDuckGo, qui
+        # survient facilement quand plusieurs requêtes partent en rafale.
+        delay_min = float(os.getenv("DDG_INTER_QUERY_DELAY_MIN", "2"))
+        delay_max = float(os.getenv("DDG_INTER_QUERY_DELAY_MAX", "5"))
+
+        for idx, dork_info in enumerate(dorks):
             query = dork_info["query"]
             self.log.debug(f"[DorkCollector] Exécution du dork ({dork_info['category']}): {query}")
 
@@ -96,6 +104,11 @@ class DorkSecretCollector:
                     })
             except Exception as e:
                 self.log.error(f"[DorkCollector] Erreur lors du dork '{query}': {str(e)}")
+
+            if idx < len(dorks) - 1:
+                delay = random.uniform(delay_min, delay_max)
+                self.log.debug(f"[DorkCollector] Pause de {delay:.1f}s avant le prochain dork (anti rate-limit DDG).")
+                await asyncio.sleep(delay)
 
         self.log.info(f"[DorkCollector] {len(discovered_urls)} URLs candidates trouvées. Début du scan de vérification.")
         verified_results = await self._verify_and_scan_urls(discovered_urls)
