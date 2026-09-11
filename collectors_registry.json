@@ -1,283 +1,283 @@
 {
-  "collectors": [
-    {
-      "id": "rss",
-      "name": "Rss",
-      "category": "passive_feed",
-      "module": "collectors.passive_feed.rss",
-      "class": "RSSCollector",
-      "enabled": true,
-      "rate_limit": {
-        "requests_per_minute": 9999
-      },
-      "requires_api_key": false
-    },
-    {
-      "id": "shodan",
-      "name": "Shodan",
-      "category": "surface_attack",
-      "module": "collectors.surface_attack.shodan",
-      "class": "ShodanCollector",
-      "enabled": true,
-      "rate_limit": {
-        "requests_per_minute": 9999
-      },
-      "requires_api_key": true,
-      "env_var": "SHODAN_API_KEY"
-    },
-    {
-      "id": "censys",
-      "name": "Censys",
-      "category": "surface_attack",
-      "module": "collectors.surface_attack.censys",
-      "class": "CensysCollector",
-      "enabled": true,
-      "rate_limit": {
-        "requests_per_minute": 9999
-      },
-      "requires_api_key": true,
-      "env_var": "CENSYS_PAT"
-    },
-    {
-      "id": "crtsh",
-      "name": "Crtsh",
-      "category": "surface_attack",
-      "module": "collectors.surface_attack.crtsh",
-      "class": "CrtShCollector",
-      "enabled": true,
-      "rate_limit": {
-        "requests_per_minute": 9999
-      },
-      "requires_api_key": false
-    },
-    {
-      "id": "securitytrails",
-      "name": "SecurityTrails",
-      "category": "surface_attack",
-      "module": "collectors.surface_attack.securitytrails",
-      "class": "SecurityTrailsCollector",
-      "enabled": true,
-      "rate_limit": {
-        "requests_per_minute": 9999
-      },
-      "requires_api_key": true,
-      "env_var": "SECURITYTRAILS_API_KEY"
-    },
-    {
-      "id": "brave",
-      "name": "Bravesearch",
-      "category": "search_engine",
-      "module": "collectors.search_engines.brave",
-      "class": "BraveSearchCollector",
-      "enabled": true,
-      "rate_limit": {
-        "requests_per_minute": 9999
-      },
-      "requires_api_key": true,
-      "env_var": "BRAVE_API_KEY"
-    },
-    {
-      "id": "mojeek",
-      "name": "Mojeek",
-      "category": "search_engine",
-      "module": "collectors.search_engines.mojeek",
-      "class": "MojeekCollector",
-      "enabled": true,
-      "rate_limit": {
-        "requests_per_minute": 9999
-      },
-      "requires_api_key": true,
-      "env_var": "MOJEEK_API_KEY"
-    },
-    {
-      "id": "duckduckgo",
-      "name": "Duckduckgo",
-      "category": "search_engine",
-      "module": "collectors.search_engines.duckduckgo",
-      "class": "DuckDuckGoCollector",
-      "enabled": true,
-      "rate_limit": {
-        "requests_per_minute": 9999
-      },
-      "requires_api_key": false
-    },
-    {
-      "id": "qwant",
-      "name": "Qwant",
-      "category": "search_engine",
-      "module": "collectors.search_engines.qwant",
-      "class": "QwantCollector",
-      "enabled": true,
-      "rate_limit": {
-        "requests_per_minute": 9999
-      },
-      "requires_api_key": false
-    },
-    {
-      "id": "searxng",
-      "name": "Searxng",
-      "category": "search_engine",
-      "module": "collectors.search_engines.searxng",
-      "class": "SearXNGCollector",
-      "enabled": true,
-      "rate_limit": {
-        "requests_per_minute": 9999
-      },
-      "requires_api_key": false
-    },
-    {
-      "id": "github",
-      "name": "Github",
-      "category": "code_source",
-      "module": "collectors.code_source.github",
-      "class": "GitHubCollector",
-      "enabled": true,
-      "rate_limit": {
-        "requests_per_minute": 9999
-      },
-      "requires_api_key": true,
-      "env_var": "GITHUB_TOKEN"
-    },
-    {
-      "id": "github_advanced",
-      "name": "Githubadvanced",
-      "category": "code_source",
-      "module": "collectors.code_source.github_advanced",
-      "class": "GitHubAdvancedCollector",
-      "enabled": true,
-      "rate_limit": {
-        "requests_per_minute": 9999
-      },
-      "requires_api_key": true,
-      "env_var": "GITHUB_TOKEN"
-    },
-    {
-      "id": "hibp",
-      "name": "Hibp",
-      "category": "breach_intel",
-      "module": "collectors.breach_intel.hibp",
-      "class": "HIBPCollector",
-      "enabled": true,
-      "rate_limit": {
-        "requests_per_minute": 9999
-      },
-      "requires_api_key": true,
-      "env_var": "HIBP_API_KEY"
-    },
-    {
-      "id": "leakix",
-      "name": "Leakix",
-      "category": "breach_intel",
-      "module": "collectors.breach_intel.leakix",
-      "class": "LeakIXCollector",
-      "enabled": true,
-      "rate_limit": {
-        "requests_per_minute": 9999
-      },
-      "requires_api_key": true,
-      "env_var": "LEAKIX_API_KEY"
-    },
-    {
-      "id": "dehashed",
-      "name": "Dehashed",
-      "category": "breach_intel",
-      "module": "collectors.breach_intel.dehashed",
-      "class": "DeHashedCollector",
-      "enabled": true,
-      "rate_limit": {
-        "requests_per_minute": 9999
-      },
-      "requires_api_key": true,
-      "env_var": "DEHASHED_API_KEY"
-    },
-    {
-      "id": "greynoise",
-      "name": "Greynoise",
-      "category": "threat_intel",
-      "module": "collectors.threat_intel.greynoise",
-      "class": "GreyNoiseCollector",
-      "enabled": true,
-      "rate_limit": {
-        "requests_per_minute": 9999
-      },
-      "requires_api_key": true,
-      "env_var": "GRY_API_KEY"
-    },
-    {
-      "id": "urlscan",
-      "name": "Urlscan",
-      "category": "threat_intel",
-      "module": "collectors.threat_intel.urlscan",
-      "class": "URLScanCollector",
-      "enabled": true,
-      "rate_limit": {
-        "requests_per_minute": 9999
-      },
-      "requires_api_key": true,
-      "env_var": "URLSCAN_API_KEY"
-    },
-    {
-      "id": "threatfox",
-      "name": "Threatfox",
-      "category": "threat_intel",
-      "module": "collectors.threat_intel.threatfox",
-      "class": "ThreatFoxCollector",
-      "enabled": true,
-      "rate_limit": {
-        "requests_per_minute": 9999
-      },
-      "requires_api_key": true,
-      "env_var": "THREATFOX_API_KEY"
-    },
-    {
-      "id": "alienvault_otx",
-      "name": "Alienvaultotx",
-      "category": "threat_intel",
-      "module": "collectors.threat_intel.alienvault_otx",
-      "class": "AlienVaultOTXCollector",
-      "enabled": true,
-      "rate_limit": {
-        "requests_per_minute": 9999
-      },
-      "requires_api_key": false
-    },
-    {
-      "id": "urlhaus",
-      "name": "Urlhaus",
-      "category": "threat_intel",
-      "module": "collectors.threat_intel.urlhaus",
-      "class": "URLhausCollector",
-      "enabled": true,
-      "rate_limit": {
-        "requests_per_minute": 9999
-      },
-      "requires_api_key": true,
-      "env_var": "URLHAUS_API_KEY"
-    },
-    {
-      "id": "malwarebazaar",
-      "name": "Malwarebazaar",
-      "category": "threat_intel",
-      "module": "collectors.threat_intel.malwarebazaar",
-      "class": "MalwareBazaarCollector",
-      "enabled": true,
-      "rate_limit": {
-        "requests_per_minute": 9999
-      },
-      "requires_api_key": false
-    },
-    {
-      "id": "pulsedive",
-      "name": "Pulsedive",
-      "category": "threat_intel",
-      "module": "collectors.threat_intel.pulsedive",
-      "class": "PulsediveCollector",
-      "enabled": true,
-      "rate_limit": {
-        "requests_per_minute": 9999
-      },
-      "requires_api_key": true,
-      "env_var": "PULSEDIVE_API_KEY"
-    }
-  ]
+    "collectors": [
+        {
+            "id": "rss",
+            "name": "Rss",
+            "category": "passive_feed",
+            "module": "collectors.passive_feed.rss",
+            "class": "RSSCollector",
+            "enabled": true,
+            "rate_limit": {
+                "requests_per_minute": 30
+            },
+            "requires_api_key": false
+        },
+        {
+            "id": "shodan",
+            "name": "Shodan",
+            "category": "surface_attack",
+            "module": "collectors.surface_attack.shodan",
+            "class": "ShodanCollector",
+            "enabled": true,
+            "rate_limit": {
+                "requests_per_minute": 60
+            },
+            "requires_api_key": true,
+            "env_var": "SHODAN_API_KEY"
+        },
+        {
+            "id": "censys",
+            "name": "Censys",
+            "category": "surface_attack",
+            "module": "collectors.surface_attack.censys",
+            "class": "CensysCollector",
+            "enabled": true,
+            "rate_limit": {
+                "requests_per_minute": 30
+            },
+            "requires_api_key": true,
+            "env_var": "CENSYS_PAT"
+        },
+        {
+            "id": "crtsh",
+            "name": "Crtsh",
+            "category": "surface_attack",
+            "module": "collectors.surface_attack.crtsh",
+            "class": "CrtShCollector",
+            "enabled": true,
+            "rate_limit": {
+                "requests_per_minute": 20
+            },
+            "requires_api_key": false
+        },
+        {
+            "id": "securitytrails",
+            "name": "SecurityTrails",
+            "category": "surface_attack",
+            "module": "collectors.surface_attack.securitytrails",
+            "class": "SecurityTrailsCollector",
+            "enabled": true,
+            "rate_limit": {
+                "requests_per_minute": 30
+            },
+            "requires_api_key": true,
+            "env_var": "SECURITYTRAILS_API_KEY"
+        },
+        {
+            "id": "brave",
+            "name": "Bravesearch",
+            "category": "search_engine",
+            "module": "collectors.search_engines.brave",
+            "class": "BraveSearchCollector",
+            "enabled": true,
+            "rate_limit": {
+                "requests_per_minute": 60
+            },
+            "requires_api_key": true,
+            "env_var": "BRAVE_API_KEY"
+        },
+        {
+            "id": "mojeek",
+            "name": "Mojeek",
+            "category": "search_engine",
+            "module": "collectors.search_engines.mojeek",
+            "class": "MojeekCollector",
+            "enabled": true,
+            "rate_limit": {
+                "requests_per_minute": 30
+            },
+            "requires_api_key": true,
+            "env_var": "MOJEEK_API_KEY"
+        },
+        {
+            "id": "duckduckgo",
+            "name": "Duckduckgo",
+            "category": "search_engine",
+            "module": "collectors.search_engines.duckduckgo",
+            "class": "DuckDuckGoCollector",
+            "enabled": true,
+            "rate_limit": {
+                "requests_per_minute": 6
+            },
+            "requires_api_key": false
+        },
+        {
+            "id": "qwant",
+            "name": "Qwant",
+            "category": "search_engine",
+            "module": "collectors.search_engines.qwant",
+            "class": "QwantCollector",
+            "enabled": true,
+            "rate_limit": {
+                "requests_per_minute": 5
+            },
+            "requires_api_key": false
+        },
+        {
+            "id": "searxng",
+            "name": "Searxng",
+            "category": "search_engine",
+            "module": "collectors.search_engines.searxng",
+            "class": "SearXNGCollector",
+            "enabled": true,
+            "rate_limit": {
+                "requests_per_minute": 8
+            },
+            "requires_api_key": false
+        },
+        {
+            "id": "github",
+            "name": "Github",
+            "category": "code_source",
+            "module": "collectors.code_source.github",
+            "class": "GitHubCollector",
+            "enabled": true,
+            "rate_limit": {
+                "requests_per_minute": 30
+            },
+            "requires_api_key": true,
+            "env_var": "GITHUB_TOKEN"
+        },
+        {
+            "id": "github_advanced",
+            "name": "Githubadvanced",
+            "category": "code_source",
+            "module": "collectors.code_source.github_advanced",
+            "class": "GitHubAdvancedCollector",
+            "enabled": true,
+            "rate_limit": {
+                "requests_per_minute": 20
+            },
+            "requires_api_key": true,
+            "env_var": "GITHUB_TOKEN"
+        },
+        {
+            "id": "hibp",
+            "name": "Hibp",
+            "category": "breach_intel",
+            "module": "collectors.breach_intel.hibp",
+            "class": "HIBPCollector",
+            "enabled": true,
+            "rate_limit": {
+                "requests_per_minute": 10
+            },
+            "requires_api_key": true,
+            "env_var": "HIBP_API_KEY"
+        },
+        {
+            "id": "leakix",
+            "name": "Leakix",
+            "category": "breach_intel",
+            "module": "collectors.breach_intel.leakix",
+            "class": "LeakIXCollector",
+            "enabled": true,
+            "rate_limit": {
+                "requests_per_minute": 20
+            },
+            "requires_api_key": true,
+            "env_var": "LEAKIX_API_KEY"
+        },
+        {
+            "id": "dehashed",
+            "name": "Dehashed",
+            "category": "breach_intel",
+            "module": "collectors.breach_intel.dehashed",
+            "class": "DeHashedCollector",
+            "enabled": true,
+            "rate_limit": {
+                "requests_per_minute": 20
+            },
+            "requires_api_key": true,
+            "env_var": "DEHASHED_API_KEY"
+        },
+        {
+            "id": "greynoise",
+            "name": "Greynoise",
+            "category": "threat_intel",
+            "module": "collectors.threat_intel.greynoise",
+            "class": "GreyNoiseCollector",
+            "enabled": true,
+            "rate_limit": {
+                "requests_per_minute": 30
+            },
+            "requires_api_key": true,
+            "env_var": "GRY_API_KEY"
+        },
+        {
+            "id": "urlscan",
+            "name": "Urlscan",
+            "category": "threat_intel",
+            "module": "collectors.threat_intel.urlscan",
+            "class": "URLScanCollector",
+            "enabled": true,
+            "rate_limit": {
+                "requests_per_minute": 20
+            },
+            "requires_api_key": true,
+            "env_var": "URLSCAN_API_KEY"
+        },
+        {
+            "id": "threatfox",
+            "name": "Threatfox",
+            "category": "threat_intel",
+            "module": "collectors.threat_intel.threatfox",
+            "class": "ThreatFoxCollector",
+            "enabled": true,
+            "rate_limit": {
+                "requests_per_minute": 30
+            },
+            "requires_api_key": true,
+            "env_var": "THREATFOX_API_KEY"
+        },
+        {
+            "id": "alienvault_otx",
+            "name": "Alienvaultotx",
+            "category": "threat_intel",
+            "module": "collectors.threat_intel.alienvault_otx",
+            "class": "AlienVaultOTXCollector",
+            "enabled": true,
+            "rate_limit": {
+                "requests_per_minute": 20
+            },
+            "requires_api_key": false
+        },
+        {
+            "id": "urlhaus",
+            "name": "Urlhaus",
+            "category": "threat_intel",
+            "module": "collectors.threat_intel.urlhaus",
+            "class": "URLhausCollector",
+            "enabled": true,
+            "rate_limit": {
+                "requests_per_minute": 30
+            },
+            "requires_api_key": true,
+            "env_var": "URLHAUS_API_KEY"
+        },
+        {
+            "id": "malwarebazaar",
+            "name": "Malwarebazaar",
+            "category": "threat_intel",
+            "module": "collectors.threat_intel.malwarebazaar",
+            "class": "MalwareBazaarCollector",
+            "enabled": true,
+            "rate_limit": {
+                "requests_per_minute": 20
+            },
+            "requires_api_key": false
+        },
+        {
+            "id": "pulsedive",
+            "name": "Pulsedive",
+            "category": "threat_intel",
+            "module": "collectors.threat_intel.pulsedive",
+            "class": "PulsediveCollector",
+            "enabled": true,
+            "rate_limit": {
+                "requests_per_minute": 20
+            },
+            "requires_api_key": true,
+            "env_var": "PULSEDIVE_API_KEY"
+        }
+    ]
 }

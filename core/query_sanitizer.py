@@ -29,13 +29,18 @@ class QuerySanitizer:
         sanitized = query
         removed = []
         warnings = []
-        
-        # 1. SUPPRESSION SYSTÉMATIQUE DES DOUBLES QUOTES (Correction critique)
-        if '"' in sanitized:
+
+        # 1. Guillemets : DuckDuckGo HTML supporte la recherche exacte
+        # ("exact_match": True dans DorkTranslator.ENGINE_CAPABILITIES) et
+        # ne pose problème que sur des guillemets mal formés (non pairs).
+        # On ne les retire donc que dans ce cas précis, au lieu de les
+        # supprimer systématiquement.
+        quote_count = sanitized.count('"')
+        if quote_count % 2 != 0:
             sanitized = sanitized.replace('"', '')
-            removed.append("doubles quotes")
-            warnings.append("⚠️ Doubles quotes supprimées : DuckDuckGo HTML gère très mal les guillemets lors du scraping.")
-        
+            removed.append("doubles quotes mal formées")
+            warnings.append("⚠️ Nombre impair de guillemets détecté : ils ont été retirés pour éviter un échec de parsing.")
+
         # 2. Supprimer les parenthèses et leur contenu complexe
         paren_pattern = r'\(([^)]+)\)'
         matches = re.findall(paren_pattern, sanitized)

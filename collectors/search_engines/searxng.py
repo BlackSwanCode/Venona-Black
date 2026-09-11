@@ -7,12 +7,43 @@ import logging
 
 logger = logging.getLogger("dorker.searxng")
 
+# Instances publiques connues pour exposer format=json (à revalider
+# périodiquement sur https://searx.space, la disponibilité de l'API JSON
+# change au gré des admins). Configurable via collectors_registry.json
+# (clé "instance_urls", liste) ou "instance_url" (une seule, gardée pour
+# compatibilité ascendante).
+DEFAULT_INSTANCES = [
+    "https://searx.tiekoetter.com",
+    "https://searx.be",
+    "https://priv.au",
+    "https://search.inetol.net",
+]
+
+
 class SearXNGCollector(BaseCollector):
     async def collect(self, query: str, session: aiohttp.ClientSession) -> list[SearchResult]:
-        # Utilisation d'une instance souvent plus permissive que searx.be
-        base_url = self.config.get("instance_url", "https://searx.tiekoetter.com")
+        instances = self.config.get("instance_urls")
+        if not instances:
+            single = self.config.get("instance_url")
+            instances = [single] if single else DEFAULT_INSTANCES
+
+        last_error = None
+        for base_url in instances:
+            results, error = await self._try_instance(base_url, query, session)
+            if error is None:
+                return results
+            last_error = error
+            logger.info(f"Repli sur l'instance SearXNG suivante après échec de {base_url}: {error}")
+
+        logger.error(f"Toutes les instances SearXNG ont échoué. Dernière erreur : {last_error}")
+        return []
+
+    async def _try_instance(self, base_url: str, query: str, session: aiohttp.ClientSession):
+        """Tente une instance donnée. Retourne (results, None) en cas de
+        succès, ou ([], message_erreur) en cas d'échec — pour permettre au
+        repli d'essayer l'instance suivante plutôt que d'abandonner."""
         url = f"{base_url}/search"
-        
+
         # Rotation du User-Agent pour éviter le blocage par les WAF (Cloudflare, etc.)
         ua = UserAgent().random
         headers = {
@@ -22,34 +53,29 @@ class SearXNGCollector(BaseCollector):
             "Referer": base_url,
             "DNT": "1"
         }
-        
+
         params = {
             "q": query,
             "format": "json",
             "language": "fr-FR"
         }
-        
+
         try:
             async with session.get(url, headers=headers, params=params, timeout=15) as response:
                 content_type = response.headers.get('Content-Type', '')
-                
+
                 # Vérification cruciale : est-ce vraiment du JSON ?
                 if 'application/json' not in content_type:
-                    logger.warning(f"L'instance {base_url} a renvoyé '{content_type}' au lieu de JSON. Blocage WAF probable.")
-                    
-                    # Lecture du contenu pour vérifier s'il s'agit d'une page de blocage connue
                     text_preview = await response.text()
                     if "cloudflare" in text_preview.lower() or "captcha" in text_preview.lower() or "attention required" in text_preview.lower():
-                        logger.error(f"L'instance {base_url} est protégée par un WAF/CAPTCHA. Essayez une autre instance.")
-                    return []
+                        return [], f"WAF/CAPTCHA détecté sur {base_url}"
+                    return [], f"'{content_type}' au lieu de JSON sur {base_url} (format=json probablement désactivé par l'admin)"
 
-                # Parsing JSON sécurisé
                 try:
                     data = await response.json()
                 except json.JSONDecodeError:
-                    logger.error(f"Échec du décodage JSON depuis {base_url} (réponse corrompue ou HTML masqué).")
-                    return []
-                
+                    return [], f"JSON corrompu depuis {base_url}"
+
                 results = []
                 for item in data.get("results", []):
                     results.append(SearchResult(
@@ -58,11 +84,9 @@ class SearXNGCollector(BaseCollector):
                         snippet=item.get("content", ""),
                         source="SearXNG"
                     ))
-                return results
-                
+                return results, None
+
         except aiohttp.ClientError as e:
-            logger.error(f"Erreur réseau SearXNG ({base_url}) : {e}")
-            return []
+            return [], f"Erreur réseau ({base_url}): {e}"
         except Exception as e:
-            logger.error(f"Erreur inattendue SearXNG : {e}")
-            return []
+            return [], f"Erreur inattendue ({base_url}): {e}"

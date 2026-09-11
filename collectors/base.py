@@ -18,18 +18,21 @@ class BaseCollector(abc.ABC):
         pass
 
     async def _respect_rate_limit(self):
-        """Simple rate limiter basé sur le temps écoulé."""
-        rpm = 9999  # HUNTER-KILLER MODE
-        if rpm <= 0: return
-        
+        """Simple rate limiter basé sur le temps écoulé, piloté par la config
+        du registre (rate_limit.requests_per_minute). Une valeur absente ou
+        <= 0 désactive explicitement le throttling pour ce collecteur."""
+        rpm = self.rate_limit_cfg.get("requests_per_minute", 20)
+        if rpm <= 0:
+            return
+
         interval = 60.0 / rpm
         # Utilisation de get_running_loop() pour Python 3.10+ (remplace get_event_loop)
         now = asyncio.get_running_loop().time()
         elapsed = now - self._last_call_time
-        
+
         if elapsed < interval:
             wait_time = interval - elapsed
             logger.debug(f"[{self.name}] Rate limit: attente de {wait_time:.2f}s")
-            await asyncio.sleep(0.005)  # HUNTER-KILLER MODE: délai minimal
-        
+            await asyncio.sleep(wait_time)
+
         self._last_call_time = asyncio.get_running_loop().time()
